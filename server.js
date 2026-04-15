@@ -47,12 +47,28 @@ function validateMovie(payload, partial = false) {
     }
   }
 
+  const textMinimumLengths = {
+    title: 1,
+    director: 2,
+    genre: 2
+  };
+
   for (const field of ['title', 'director', 'genre']) {
     if (Object.hasOwn(data, field)) {
-      if (typeof data[field] !== 'string' || data[field].trim() === '') {
-        errors.push(`${field} must be a non-empty string.`);
+      if (typeof data[field] !== 'string') {
+        errors.push(`${field} must be a string.`);
       } else {
-        data[field] = data[field].trim();
+        const sanitized = data[field]
+          .replace(/[\u0000-\u001F\u007F]/g, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+        const minimumLength = textMinimumLengths[field];
+
+        if (sanitized.length < minimumLength) {
+          errors.push(`${field} must be at least ${minimumLength} character${minimumLength === 1 ? '' : 's'} long.`);
+        } else {
+          data[field] = sanitized;
+        }
       }
     }
   }
