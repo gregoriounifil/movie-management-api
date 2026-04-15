@@ -84,8 +84,8 @@ function validateMovie(payload, partial = false) {
 
   if (Object.hasOwn(data, 'rating')) {
     const rating = Number(data.rating);
-    if (!Number.isFinite(rating) || rating < 0 || rating > 10) {
-      errors.push('rating must be a number between 0 and 10.');
+    if (!Number.isFinite(rating) || rating < 0 || rating > 5) {
+      errors.push('rating must be a number between 0 and 5.');
     } else {
       data.rating = Math.round(rating * 10) / 10;
     }
