@@ -1,7 +1,7 @@
 import express from 'express';
 import Database from 'better-sqlite3';
 import { v4 as uuidv4 } from 'uuid';
-import axios from 'axios';
+import puppeteer from 'puppeteer';
 import * as cheerio from 'cheerio';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -108,24 +108,103 @@ function extractLetterboxdTitles(html) {
   const $ = cheerio.load(html);
   const titles = new Set();
 
+  function cleanTitle(title) {
+    return String(title || '')
+      .replace(/^Poster for\s+/i, '')
+      .replace(/\s+\(\d{4}\)$/, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function addTitle(title) {
+    const cleaned = cleanTitle(title);
+    if (cleaned) titles.add(cleaned);
+  }
+
+  function titleFromFilmUrl(url) {
+    const match = String(url || '').match(/\/film\/([^/]+)\//);
+    if (!match) return '';
+
+    return match[1]
+      .replaceAll('-', ' ')
+      .replace(/\b\w/g, char => char.toUpperCase())
+      .trim();
+  }
+
   $('[data-film-name]').each((_, element) => {
-    const title = $(element).attr('data-film-name');
-    if (title && title.trim()) titles.add(title.trim());
+    addTitle($(element).attr('data-film-name'));
   });
 
-  $('.poster-container img[alt], .film-poster img[alt]').each((_, element) => {
-    const title = $(element).attr('alt');
-    if (title && title.trim()) titles.add(title.trim());
+  if (titles.size > 0) return [...titles];
+
+  $('[data-film-slug]').each((_, element) => {
+    addTitle(titleFromFilmUrl(`/film/${$(element).attr('data-film-slug')}/`));
   });
 
-  $('li.poster-container div.film-poster, div.poster').each((_, element) => {
-    const title = $(element).attr('data-film-name') || $(element).attr('data-target-link')?.split('/film/')[1]?.split('/')[0];
-    if (title && title.trim()) {
-      titles.add(title.replaceAll('-', ' ').replace(/\b\w/g, char => char.toUpperCase()).trim());
-    }
+  if (titles.size > 0) return [...titles];
+
+  [
+    '.poster-container img[alt]',
+    '.film-poster img[alt]',
+    '.poster-list li img[alt]',
+    '.poster-list .poster img[alt]',
+    '.film-list img[alt]',
+    'ul.poster-list li a[href*="/film/"] img[alt]'
+  ].forEach(selector => {
+    $(selector).each((_, element) => {
+      addTitle($(element).attr('alt'));
+    });
+  });
+
+  if (titles.size > 0) return [...titles];
+
+  [
+    'li.poster-container div.film-poster',
+    'div.poster',
+    '.poster-list li',
+    '.film-poster'
+  ].forEach(selector => {
+    $(selector).each((_, element) => {
+      addTitle(
+        $(element).attr('data-film-name')
+          || titleFromFilmUrl($(element).attr('data-target-link'))
+          || titleFromFilmUrl($(element).attr('href'))
+          || titleFromFilmUrl($(element).find('a[href*="/film/"]').first().attr('href'))
+      );
+    });
   });
 
   return [...titles];
+}
+
+async function fetchRenderedLetterboxdHtml(url) {
+  const browser = await puppeteer.launch({
+    headless: 'new',
+    args: ['--no-sandbox', '--disable-setuid-sandbox']
+  });
+
+  try {
+    const page = await browser.newPage();
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36');
+    await page.setExtraHTTPHeaders({
+      'Accept-Language': 'en-US,en;q=0.5'
+    });
+    const response = await page.goto(url, {
+      waitUntil: 'networkidle2',
+      timeout: 45000
+    });
+
+    console.log(`Letterboxd import status: ${response?.status() ?? 'unknown'}`);
+
+    await page.waitForSelector('.poster-container, .film-poster, .poster-list', {
+      visible: true,
+      timeout: 30000
+    });
+
+    return await page.content();
+  } finally {
+    await browser.close();
+  }
 }
 
 app.get('/api/movies', (req, res) => {
@@ -201,13 +280,8 @@ app.post('/api/movies/import', async (req, res) => {
   }
 
   try {
-    const response = await axios.get(parsedUrl.href, {
-      timeout: 15000,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 MovieManagementSystem/1.0'
-      }
-    });
-    const titles = extractLetterboxdTitles(response.data);
+    const html = await fetchRenderedLetterboxdHtml(parsedUrl.href);
+    const titles = extractLetterboxdTitles(html);
 
     if (titles.length === 0) {
       return res.status(400).json({ errors: ['No movie titles were found at that Letterboxd URL.'] });
@@ -249,7 +323,7 @@ app.post('/api/movies/import', async (req, res) => {
     });
   } catch (error) {
     return res.status(400).json({
-      errors: [`Could not import from URL: ${error.response?.status ? `HTTP ${error.response.status}` : error.message}`]
+      errors: [`Could not import from URL: ${error.message}`]
     });
   }
 });
