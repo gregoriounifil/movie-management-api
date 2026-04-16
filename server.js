@@ -24,10 +24,31 @@ db.exec(`
     title TEXT NOT NULL,
     director TEXT NOT NULL,
     year INTEGER NOT NULL,
-    rating REAL NOT NULL,
+    rating REAL,
     genre TEXT NOT NULL
   );
 `);
+
+const ratingColumn = db.prepare('PRAGMA table_info(movies)').all().find(column => column.name === 'rating');
+if (ratingColumn?.notnull) {
+  db.exec(`
+    CREATE TABLE movies_new (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      director TEXT NOT NULL,
+      year INTEGER NOT NULL,
+      rating REAL,
+      genre TEXT NOT NULL
+    );
+
+    INSERT INTO movies_new (id, title, director, year, rating, genre)
+    SELECT id, title, director, year, rating, genre
+    FROM movies;
+
+    DROP TABLE movies;
+    ALTER TABLE movies_new RENAME TO movies;
+  `);
+}
 
 app.use(express.json());
 app.use(express.static(__dirname));
@@ -83,11 +104,15 @@ function validateMovie(payload, partial = false) {
   }
 
   if (Object.hasOwn(data, 'rating')) {
+    if (data.rating === null || data.rating === '') {
+      data.rating = null;
+    } else {
     const rating = Number(data.rating);
-    if (!Number.isFinite(rating) || rating < 0 || rating > 5) {
-      errors.push('rating must be a number between 0 and 5.');
+    if (!Number.isFinite(rating) || rating < 0.5 || rating > 5) {
+      errors.push('rating must be a number between 0.5 and 5.');
     } else {
       data.rating = Math.round(rating * 10) / 10;
+    }
     }
   }
 
@@ -104,9 +129,9 @@ function parsePositiveInteger(value, fallback, max = 100) {
   return Math.min(parsed, max);
 }
 
-function extractLetterboxdTitles(html) {
+function extractLetterboxdMovies(html) {
   const $ = cheerio.load(html);
-  const titles = new Set();
+  const moviesByTitle = new Map();
 
   function cleanTitle(title) {
     return String(title || '')
@@ -116,9 +141,45 @@ function extractLetterboxdTitles(html) {
       .trim();
   }
 
-  function addTitle(title) {
+  function parseYear(value) {
+    const yearMatch = String(value || '').match(/\((\d{4})\)\s*$/);
+    const year = Number(yearMatch?.[1] || value);
+    return Number.isInteger(year) && year >= 1888 && year <= currentYear + 5 ? year : currentYear;
+  }
+
+  function parseRating(value, className = '') {
+    const ratingClassMatch = String(className || '').match(/\brated-(\d+)\b/);
+    if (ratingClassMatch) return Math.round((Number(ratingClassMatch[1]) / 2) * 10) / 10;
+
+    const ratingText = String(value || '').trim();
+    if (!ratingText) return null;
+
+    const fullStars = (ratingText.match(/★/g) || []).length;
+    const halfStars = (ratingText.match(/½/g) || []).length;
+    const numericMatch = ratingText.match(/(\d+(?:\.\d+)?)/);
+
+    if (fullStars > 0 || halfStars > 0) {
+      return Math.min(5, Math.round((fullStars + halfStars * 0.5) * 10) / 10);
+    }
+
+    if (numericMatch) {
+      const numericRating = Number(numericMatch[1]);
+      if (Number.isFinite(numericRating)) return Math.min(5, Math.round(numericRating * 10) / 10);
+    }
+
+    return null;
+  }
+
+  function addMovie(title, details = {}) {
     const cleaned = cleanTitle(title);
-    if (cleaned) titles.add(cleaned);
+    if (!cleaned || moviesByTitle.has(cleaned.toLowerCase())) return;
+
+    moviesByTitle.set(cleaned.toLowerCase(), {
+      title: cleaned,
+      year: parseYear(details.year),
+      rating: parseRating(details.rating, details.ratingClass),
+      url: details.url || ''
+    });
   }
 
   function titleFromFilmUrl(url) {
@@ -131,17 +192,76 @@ function extractLetterboxdTitles(html) {
       .trim();
   }
 
-  $('[data-film-name]').each((_, element) => {
-    addTitle($(element).attr('data-film-name'));
+  $('[data-component-class="LazyPoster"][data-film-id], [data-film-id][data-item-name]').each((_, element) => {
+    const item = $(element);
+    const filmId = item.attr('data-film-id');
+    const poster = item.find('.film-poster').addBack('.film-poster').first();
+    const title = item.attr('data-item-name')
+      || item.attr('data-item-full-display-name')
+      || poster.attr('data-film-name')
+      || poster.find('.frame').attr('data-original-title')
+      || poster.find('img[alt]').attr('alt')
+      || titleFromFilmUrl(item.attr('data-target-link'));
+    const url = item.attr('data-target-link') || item.attr('data-item-link') || poster.find('a[href*="/film/"]').first().attr('href');
+    const viewingData = filmId ? $(`[data-item-uid="film:${filmId}"]`) : $();
+
+    addMovie(title, {
+      year: item.attr('data-film-release-year') || poster.attr('data-film-release-year') || title,
+      rating: viewingData.find('.rating').first().text(),
+      ratingClass: viewingData.find('.rating').first().attr('class'),
+      url
+    });
   });
 
-  if (titles.size > 0) return [...titles];
+  if (moviesByTitle.size > 0) return [...moviesByTitle.values()];
+
+  $('.poster-container, li.poster-container').each((_, element) => {
+    const container = $(element);
+    const poster = container.find('.film-poster').addBack('.film-poster').first();
+    const title = poster.attr('data-film-name')
+      || poster.attr('data-item-name')
+      || container.attr('data-film-name')
+      || container.find('[data-film-name]').first().attr('data-film-name')
+      || titleFromFilmUrl(container.find('a[href*="/film/"]').first().attr('href'));
+    const url = container.find('a[href*="/film/"]').first().attr('href')
+      || poster.find('a[href*="/film/"]').first().attr('href');
+    const rating = container.find('.rating').first().text()
+      || container.next('.rating').text()
+      || poster.find('.rating').first().text();
+
+    addMovie(title, {
+      year: poster.attr('data-film-release-year') || container.attr('data-film-release-year'),
+      rating,
+      ratingClass: container.find('.rating').first().attr('class') || poster.find('.rating').first().attr('class'),
+      url
+    });
+  });
+
+  if (moviesByTitle.size > 0) return [...moviesByTitle.values()];
+
+  $('[data-film-name]').each((_, element) => {
+    const item = $(element);
+    addMovie(item.attr('data-film-name'), {
+      year: item.attr('data-film-release-year'),
+      rating: item.find('.rating').first().text() || item.closest('.poster-container').find('.rating').first().text(),
+      ratingClass: item.find('.rating').first().attr('class') || item.closest('.poster-container').find('.rating').first().attr('class'),
+      url: item.attr('data-target-link') || item.attr('data-item-link') || item.find('a[href*="/film/"]').first().attr('href')
+    });
+  });
+
+  if (moviesByTitle.size > 0) return [...moviesByTitle.values()];
 
   $('[data-film-slug]').each((_, element) => {
-    addTitle(titleFromFilmUrl(`/film/${$(element).attr('data-film-slug')}/`));
+    const item = $(element);
+    addMovie(titleFromFilmUrl(`/film/${item.attr('data-film-slug')}/`), {
+      year: item.attr('data-film-release-year'),
+      rating: item.find('.rating').first().text() || item.closest('.poster-container').find('.rating').first().text(),
+      ratingClass: item.find('.rating').first().attr('class') || item.closest('.poster-container').find('.rating').first().attr('class'),
+      url: `/film/${item.attr('data-film-slug')}/`
+    });
   });
 
-  if (titles.size > 0) return [...titles];
+  if (moviesByTitle.size > 0) return [...moviesByTitle.values()];
 
   [
     '.poster-container img[alt]',
@@ -152,11 +272,19 @@ function extractLetterboxdTitles(html) {
     'ul.poster-list li a[href*="/film/"] img[alt]'
   ].forEach(selector => {
     $(selector).each((_, element) => {
-      addTitle($(element).attr('alt'));
+      const item = $(element);
+      const container = item.closest('.poster-container');
+      const poster = item.closest('.film-poster');
+      addMovie(item.attr('alt'), {
+        year: poster.attr('data-film-release-year') || container.find('.film-poster').first().attr('data-film-release-year'),
+        rating: container.find('.rating').first().text(),
+        ratingClass: container.find('.rating').first().attr('class'),
+        url: container.find('a[href*="/film/"]').first().attr('href') || poster.find('a[href*="/film/"]').first().attr('href')
+      });
     });
   });
 
-  if (titles.size > 0) return [...titles];
+  if (moviesByTitle.size > 0) return [...moviesByTitle.values()];
 
   [
     'li.poster-container div.film-poster',
@@ -165,16 +293,89 @@ function extractLetterboxdTitles(html) {
     '.film-poster'
   ].forEach(selector => {
     $(selector).each((_, element) => {
-      addTitle(
-        $(element).attr('data-film-name')
-          || titleFromFilmUrl($(element).attr('data-target-link'))
-          || titleFromFilmUrl($(element).attr('href'))
-          || titleFromFilmUrl($(element).find('a[href*="/film/"]').first().attr('href'))
+      const item = $(element);
+      const poster = item.find('.film-poster').addBack('.film-poster').first();
+      addMovie(
+        item.attr('data-film-name')
+          || poster.attr('data-film-name')
+          || titleFromFilmUrl(item.attr('data-target-link'))
+          || titleFromFilmUrl(item.attr('href'))
+          || titleFromFilmUrl(item.find('a[href*="/film/"]').first().attr('href')),
+        {
+          year: poster.attr('data-film-release-year') || item.attr('data-film-release-year'),
+          rating: item.find('.rating').first().text(),
+          ratingClass: item.find('.rating').first().attr('class'),
+          url: item.attr('data-target-link') || item.attr('href') || item.find('a[href*="/film/"]').first().attr('href')
+        }
       );
     });
   });
 
-  return [...titles];
+  return [...moviesByTitle.values()];
+}
+
+async function fetchLetterboxdMovieDetails(browser, movieUrl) {
+  if (!movieUrl) return { director: 'Unknown', genre: 'Imported' };
+
+  const url = new URL(movieUrl, 'https://letterboxd.com').href;
+  const page = await browser.newPage();
+
+  try {
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36');
+    await page.setExtraHTTPHeaders({
+      'Accept-Language': 'en-US,en;q=0.5'
+    });
+    await page.goto(url, {
+      waitUntil: 'domcontentloaded',
+      timeout: 30000
+    });
+
+    return await page.evaluate(() => {
+      function uniqueTexts(selector) {
+        return [...document.querySelectorAll(selector)]
+          .map(element => element.textContent.trim())
+          .filter(Boolean)
+          .filter((value, index, values) => values.indexOf(value) === index);
+      }
+
+      const directors = uniqueTexts('a[href*="/director/"]');
+      const genres = uniqueTexts('a[href*="/films/genre/"]');
+
+      return {
+        director: directors.join(', ') || 'Unknown',
+        genre: genres[0] || 'Imported'
+      };
+    });
+  } finally {
+    await page.close();
+  }
+}
+
+async function enrichLetterboxdMovies(movies) {
+  const browser = await puppeteer.launch({
+    headless: 'new',
+    args: ['--no-sandbox', '--disable-setuid-sandbox']
+  });
+  const detailsByUrl = new Map();
+
+  try {
+    for (const movie of movies) {
+      if (!movie.url) {
+        detailsByUrl.set(movie.url, { director: 'Unknown', genre: 'Imported' });
+        continue;
+      }
+
+      if (!detailsByUrl.has(movie.url)) {
+        detailsByUrl.set(movie.url, await fetchLetterboxdMovieDetails(browser, movie.url));
+      }
+
+      Object.assign(movie, detailsByUrl.get(movie.url));
+    }
+  } finally {
+    await browser.close();
+  }
+
+  return movies;
 }
 
 async function fetchRenderedLetterboxdHtml(url) {
@@ -209,6 +410,7 @@ async function fetchRenderedLetterboxdHtml(url) {
 
 app.get('/api/movies', (req, res) => {
   const { genre, sortBy = 'title', order = 'asc' } = req.query;
+  const titleFilter = String(req.query.title || req.query.nome || '').trim();
   const limit = parsePositiveInteger(req.query.limit, 10);
   const page = parsePositiveInteger(req.query.page, 1, 100000);
   const offset = (page - 1) * limit;
@@ -221,6 +423,11 @@ app.get('/api/movies', (req, res) => {
   if (genre && String(genre).trim()) {
     where.push('LOWER(genre) = LOWER(@genre)');
     params.genre = String(genre).trim();
+  }
+
+  if (titleFilter) {
+    where.push('LOWER(title) LIKE LOWER(@title)');
+    params.title = `%${titleFilter}%`;
   }
 
   const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
@@ -281,11 +488,13 @@ app.post('/api/movies/import', async (req, res) => {
 
   try {
     const html = await fetchRenderedLetterboxdHtml(parsedUrl.href);
-    const titles = extractLetterboxdTitles(html);
+    const movies = extractLetterboxdMovies(html);
 
-    if (titles.length === 0) {
+    if (movies.length === 0) {
       return res.status(400).json({ errors: ['No movie titles were found at that Letterboxd URL.'] });
     }
+
+    await enrichLetterboxdMovies(movies);
 
     const existingTitles = new Set(
       db.prepare('SELECT LOWER(title) AS title FROM movies').all().map(row => row.title)
@@ -297,20 +506,20 @@ app.post('/api/movies/import', async (req, res) => {
     const imported = [];
 
     const saveMovies = db.transaction(() => {
-      for (const title of titles) {
-        if (existingTitles.has(title.toLowerCase())) continue;
+      for (const importedMovie of movies) {
+        if (existingTitles.has(importedMovie.title.toLowerCase())) continue;
 
         const movie = {
           id: uuidv4(),
-          title,
-          director: 'Unknown',
-          year: currentYear,
-          rating: 5.0,
-          genre: 'Imported'
+          title: importedMovie.title,
+          director: importedMovie.director,
+          year: importedMovie.year,
+          rating: importedMovie.rating,
+          genre: importedMovie.genre
         };
         insert.run(movie);
         imported.push(movie);
-        existingTitles.add(title.toLowerCase());
+        existingTitles.add(importedMovie.title.toLowerCase());
       }
     });
 
@@ -318,7 +527,7 @@ app.post('/api/movies/import', async (req, res) => {
 
     return res.status(201).json({
       importedCount: imported.length,
-      skippedCount: titles.length - imported.length,
+      skippedCount: movies.length - imported.length,
       data: imported
     });
   } catch (error) {

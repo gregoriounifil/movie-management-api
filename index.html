@@ -40,7 +40,7 @@
               </label>
               <label class="grid gap-2 text-sm font-medium text-zinc-300">
                 Nota
-                <input name="rating" required type="number" min="0" max="5" step="0.1" class="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none transition focus:border-amber-300" placeholder="4.5">
+                <input name="rating" required type="number" min="0.5" max="5" step="0.5" class="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none transition focus:border-amber-300" placeholder="4.5">
               </label>
             </div>
             <label class="grid gap-2 text-sm font-medium text-zinc-300">
@@ -53,7 +53,8 @@
         </form>
 
         <section class="flex min-w-0 flex-col gap-4">
-          <div class="grid gap-3 rounded-lg border border-zinc-800 bg-zinc-900 p-4 md:grid-cols-[1fr_180px_180px]">
+          <div class="grid gap-3 rounded-lg border border-zinc-800 bg-zinc-900 p-4 md:grid-cols-[1fr_1fr_180px_180px]">
+            <input id="titleFilter" class="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none transition focus:border-amber-300" placeholder="Filtrar por título">
             <input id="genreFilter" class="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none transition focus:border-amber-300" placeholder="Filtrar por gênero">
             <select id="sortBy" class="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none transition focus:border-amber-300">
               <option value="title">Ordenar por título</option>
@@ -105,6 +106,7 @@
       const moviesEl = document.querySelector('#movies');
       const form = document.querySelector('#movieForm');
       const formMessage = document.querySelector('#formMessage');
+      const titleFilter = document.querySelector('#titleFilter');
       const genreFilter = document.querySelector('#genreFilter');
       const sortBy = document.querySelector('#sortBy');
       const order = document.querySelector('#order');
@@ -122,7 +124,7 @@
                 <p class="mt-1 text-sm text-zinc-400">${escapeHtml(movie.director)} · ${movie.year} · ${escapeHtml(movie.genre)}</p>
               </div>
               <div class="flex shrink-0 items-center gap-3">
-                <span class="rounded-md bg-emerald-400 px-2.5 py-1 text-sm font-bold text-zinc-950">${movie.rating.toFixed(1)}</span>
+                <span class="rounded-md bg-emerald-400 px-2.5 py-1 text-sm font-bold text-zinc-950">${movie.rating === null ? 'Sem nota' : movie.rating.toFixed(1)}</span>
                 <button class="rounded-md border border-red-400/60 px-3 py-1.5 text-sm font-semibold text-red-200 transition hover:bg-red-500 hover:text-white" data-delete="${movie.id}">Excluir</button>
               </div>
             </div>
@@ -147,6 +149,7 @@
           sortBy: sortBy.value,
           order: order.value
         });
+        if (titleFilter.value.trim()) params.set('title', titleFilter.value.trim());
         if (genreFilter.value.trim()) params.set('genre', genreFilter.value.trim());
 
         const response = await fetch(`/api/movies?${params}`);
@@ -259,7 +262,7 @@
         loadMovies();
       });
 
-      [genreFilter, sortBy, order].forEach(control => {
+      [titleFilter, genreFilter, sortBy, order].forEach(control => {
         control.addEventListener('input', () => {
           state.page = 1;
           loadMovies();
