@@ -411,6 +411,7 @@ async function fetchRenderedLetterboxdHtml(url) {
 app.get('/api/movies', (req, res) => {
   const { genre, sortBy = 'title', order = 'asc' } = req.query;
   const titleFilter = String(req.query.title || req.query.nome || '').trim();
+  const searchFilter = String(req.query.search || '').trim();
   const limit = parsePositiveInteger(req.query.limit, 10);
   const page = parsePositiveInteger(req.query.page, 1, 100000);
   const offset = (page - 1) * limit;
@@ -428,6 +429,11 @@ app.get('/api/movies', (req, res) => {
   if (titleFilter) {
     where.push('LOWER(title) LIKE LOWER(@title)');
     params.title = `%${titleFilter}%`;
+  }
+
+  if (searchFilter) {
+    where.push('(LOWER(title) LIKE LOWER(@search) OR LOWER(genre) LIKE LOWER(@search))');
+    params.search = `%${searchFilter}%`;
   }
 
   const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';

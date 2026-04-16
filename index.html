@@ -53,16 +53,15 @@
         </form>
 
         <section class="flex min-w-0 flex-col gap-4">
-          <div class="grid gap-3 rounded-lg border border-zinc-800 bg-zinc-900 p-4 md:grid-cols-[1fr_1fr_180px_180px]">
-            <input id="titleFilter" class="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none transition focus:border-amber-300" placeholder="Filtrar por título">
-            <input id="genreFilter" class="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none transition focus:border-amber-300" placeholder="Filtrar por gênero">
-            <select id="sortBy" class="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none transition focus:border-amber-300">
+          <div class="flex flex-col gap-3 rounded-lg border border-zinc-800 bg-zinc-900 p-4 md:flex-row md:items-center">
+            <input id="searchFilter" class="min-w-0 rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none transition focus:border-amber-300 md:flex-1" placeholder="Pesquisar filme ou gênero...">
+            <select id="sortBy" class="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none transition focus:border-amber-300 md:w-44">
               <option value="title">Ordenar por título</option>
               <option value="year">Ordenar por ano</option>
               <option value="rating">Ordenar por nota</option>
               <option value="genre">Ordenar por gênero</option>
             </select>
-            <select id="order" class="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none transition focus:border-amber-300">
+            <select id="order" class="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none transition focus:border-amber-300 md:w-40">
               <option value="asc">Crescente</option>
               <option value="desc">Decrescente</option>
             </select>
@@ -106,8 +105,7 @@
       const moviesEl = document.querySelector('#movies');
       const form = document.querySelector('#movieForm');
       const formMessage = document.querySelector('#formMessage');
-      const titleFilter = document.querySelector('#titleFilter');
-      const genreFilter = document.querySelector('#genreFilter');
+      const searchFilter = document.querySelector('#searchFilter');
       const sortBy = document.querySelector('#sortBy');
       const order = document.querySelector('#order');
       const importModal = document.querySelector('#importModal');
@@ -149,8 +147,7 @@
           sortBy: sortBy.value,
           order: order.value
         });
-        if (titleFilter.value.trim()) params.set('title', titleFilter.value.trim());
-        if (genreFilter.value.trim()) params.set('genre', genreFilter.value.trim());
+        if (searchFilter.value.trim()) params.set('search', searchFilter.value.trim());
 
         const response = await fetch(`/api/movies?${params}`);
         const result = await response.json();
@@ -262,7 +259,7 @@
         loadMovies();
       });
 
-      [titleFilter, genreFilter, sortBy, order].forEach(control => {
+      [searchFilter, sortBy, order].forEach(control => {
         control.addEventListener('input', () => {
           state.page = 1;
           loadMovies();
