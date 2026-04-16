@@ -35,6 +35,13 @@ app.use(express.static(__dirname));
 function validateMovie(payload, partial = false) {
   const errors = [];
   const allowedFields = ['title', 'director', 'year', 'rating', 'genre'];
+  const fieldLabels = {
+    title: 'título',
+    director: 'diretor',
+    year: 'ano',
+    rating: 'nota',
+    genre: 'gênero'
+  };
   const data = {};
 
   for (const field of allowedFields) {
@@ -43,14 +50,14 @@ function validateMovie(payload, partial = false) {
 
   if (!partial) {
     for (const field of allowedFields) {
-      if (!Object.hasOwn(data, field)) errors.push(`${field} is required.`);
+      if (!Object.hasOwn(data, field)) errors.push(`${fieldLabels[field]} é obrigatório.`);
     }
   }
 
   for (const field of ['title', 'director', 'genre']) {
     if (Object.hasOwn(data, field)) {
       if (typeof data[field] !== 'string' || data[field].trim() === '') {
-        errors.push(`${field} must be a non-empty string.`);
+        errors.push(`${fieldLabels[field]} deve ser um texto não vazio.`);
       } else {
         data[field] = data[field].trim();
       }
@@ -60,7 +67,7 @@ function validateMovie(payload, partial = false) {
   if (Object.hasOwn(data, 'year')) {
     const year = Number(data.year);
     if (!Number.isInteger(year) || year < 1888 || year > currentYear + 5) {
-      errors.push(`year must be an integer between 1888 and ${currentYear + 5}.`);
+      errors.push(`ano deve ser um número inteiro entre 1888 e ${currentYear + 5}.`);
     } else {
       data.year = year;
     }
@@ -69,14 +76,14 @@ function validateMovie(payload, partial = false) {
   if (Object.hasOwn(data, 'rating')) {
     const rating = Number(data.rating);
     if (!Number.isFinite(rating) || rating < 0 || rating > 10) {
-      errors.push('rating must be a number between 0 and 10.');
+      errors.push('nota deve ser um número entre 0 e 10.');
     } else {
       data.rating = Math.round(rating * 10) / 10;
     }
   }
 
   if (partial && Object.keys(data).length === 0) {
-    errors.push('At least one editable movie field is required.');
+    errors.push('Pelo menos um campo editável do filme é obrigatório.');
   }
 
   return { data, errors };
@@ -157,7 +164,7 @@ app.get('/api/movies', (req, res) => {
 
 app.get('/api/movies/:id', (req, res) => {
   const movie = db.prepare('SELECT * FROM movies WHERE id = ?').get(req.params.id);
-  if (!movie) return res.status(404).json({ error: 'Movie not found.' });
+  if (!movie) return res.status(404).json({ error: 'Filme não encontrado.' });
   return res.status(200).json(movie);
 });
 
@@ -177,17 +184,17 @@ app.post('/api/movies', (req, res) => {
 app.post('/api/movies/import', async (req, res) => {
   const url = typeof req.body.url === 'string' ? req.body.url.trim() : '';
 
-  if (!url) return res.status(400).json({ errors: ['url is required.'] });
+  if (!url) return res.status(400).json({ errors: ['URL é obrigatória.'] });
 
   let parsedUrl;
   try {
     parsedUrl = new URL(url);
   } catch {
-    return res.status(400).json({ errors: ['url must be a valid URL.'] });
+    return res.status(400).json({ errors: ['URL deve ser válida.'] });
   }
 
   if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
-    return res.status(400).json({ errors: ['url must use http or https.'] });
+    return res.status(400).json({ errors: ['URL deve usar http ou https.'] });
   }
 
   try {
@@ -200,7 +207,7 @@ app.post('/api/movies/import', async (req, res) => {
     const titles = extractLetterboxdTitles(response.data);
 
     if (titles.length === 0) {
-      return res.status(400).json({ errors: ['No movie titles were found at that Letterboxd URL.'] });
+      return res.status(400).json({ errors: ['Nenhum título de filme foi encontrado nessa URL do Letterboxd.'] });
     }
 
     const existingTitles = new Set(
@@ -219,10 +226,10 @@ app.post('/api/movies/import', async (req, res) => {
         const movie = {
           id: randomUUID(),
           title,
-          director: 'Unknown',
+          director: 'Desconhecido',
           year: currentYear,
           rating: 5.0,
-          genre: 'Imported'
+          genre: 'Importado'
         };
         insert.run(movie);
         imported.push(movie);
@@ -239,14 +246,14 @@ app.post('/api/movies/import', async (req, res) => {
     });
   } catch (error) {
     return res.status(400).json({
-      errors: [`Could not import from URL: ${error.response?.status ? `HTTP ${error.response.status}` : error.message}`]
+      errors: [`Não foi possível importar da URL: ${error.response?.status ? `HTTP ${error.response.status}` : error.message}`]
     });
   }
 });
 
 app.put('/api/movies/:id', (req, res) => {
   const existing = db.prepare('SELECT * FROM movies WHERE id = ?').get(req.params.id);
-  if (!existing) return res.status(404).json({ error: 'Movie not found.' });
+  if (!existing) return res.status(404).json({ error: 'Filme não encontrado.' });
 
   const { data, errors } = validateMovie(req.body, true);
   if (errors.length) return res.status(400).json({ errors });
@@ -263,17 +270,17 @@ app.put('/api/movies/:id', (req, res) => {
 
 app.delete('/api/movies/:id', (req, res) => {
   const result = db.prepare('DELETE FROM movies WHERE id = ?').run(req.params.id);
-  if (result.changes === 0) return res.status(404).json({ error: 'Movie not found.' });
+  if (result.changes === 0) return res.status(404).json({ error: 'Filme não encontrado.' });
   return res.status(204).send();
 });
 
 app.use((req, res) => {
-  res.status(404).json({ error: 'Route not found.' });
+  res.status(404).json({ error: 'Rota não encontrada.' });
 });
 
 if (!isVercel) {
   app.listen(port, () => {
-    console.log(`Movie Management System running at http://localhost:${port}`);
+    console.log(`Sistema de Gerenciamento de Filmes em execução em http://localhost:${port}`);
   });
 }
 

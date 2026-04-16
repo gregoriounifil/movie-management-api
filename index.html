@@ -1,54 +1,54 @@
 <!doctype html>
-<html lang="en">
+<html lang="pt-BR">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Movie Management System</title>
+    <title>Sistema de Gerenciamento de Filmes</title>
     <script src="https://cdn.tailwindcss.com"></script>
   </head>
   <body class="min-h-screen bg-zinc-950 text-zinc-100">
     <main class="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8">
       <header class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p class="text-sm font-semibold uppercase tracking-[0.2em] text-amber-300">Cinema CRUD</p>
-          <h1 class="mt-2 text-4xl font-bold tracking-tight sm:text-5xl">Movie Management</h1>
+          <p class="text-sm font-semibold uppercase tracking-[0.2em] text-amber-300">CRUD de Cinema</p>
+          <h1 class="mt-2 text-4xl font-bold tracking-tight sm:text-5xl">Gerenciamento de Filmes</h1>
         </div>
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <button id="openImportModal" class="rounded-md bg-sky-300 px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-sky-200" type="button">🔗 Import Letterboxd</button>
+          <button id="openImportModal" class="rounded-md bg-sky-300 px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-sky-200" type="button">Importar do Letterboxd</button>
           <div class="rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-300">
-            <span id="movieCount" class="font-semibold text-white">0</span> movies
+            <span id="movieCount" class="font-semibold text-white">0</span> filmes
           </div>
         </div>
       </header>
 
       <section class="grid gap-6 lg:grid-cols-[380px_1fr]">
         <form id="movieForm" class="rounded-lg border border-zinc-800 bg-zinc-900 p-5 shadow-2xl shadow-black/30">
-          <h2 class="text-xl font-semibold">Add movie</h2>
+          <h2 class="text-xl font-semibold">Adicionar filme</h2>
           <div class="mt-5 grid gap-4">
             <label class="grid gap-2 text-sm font-medium text-zinc-300">
-              Title
+              Título
               <input name="title" required class="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none transition focus:border-amber-300" placeholder="Parasite">
             </label>
             <label class="grid gap-2 text-sm font-medium text-zinc-300">
-              Director
+              Diretor
               <input name="director" required class="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none transition focus:border-amber-300" placeholder="Bong Joon-ho">
             </label>
             <div class="grid grid-cols-2 gap-3">
               <label class="grid gap-2 text-sm font-medium text-zinc-300">
-                Year
+                Ano
                 <input name="year" required type="number" min="1888" max="2031" class="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none transition focus:border-amber-300" placeholder="2019">
               </label>
               <label class="grid gap-2 text-sm font-medium text-zinc-300">
-                Rating
+                Nota
                 <input name="rating" required type="number" min="0" max="10" step="0.1" class="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none transition focus:border-amber-300" placeholder="9.2">
               </label>
             </div>
             <label class="grid gap-2 text-sm font-medium text-zinc-300">
-              Genre
-              <input name="genre" required class="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none transition focus:border-amber-300" placeholder="Thriller">
+              Gênero
+              <input name="genre" required class="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none transition focus:border-amber-300" placeholder="Suspense">
             </label>
           </div>
-          <button class="mt-5 w-full rounded-md bg-amber-300 px-4 py-2 font-semibold text-zinc-950 transition hover:bg-amber-200" type="submit">Add movie</button>
+          <button class="mt-5 w-full rounded-md bg-amber-300 px-4 py-2 font-semibold text-zinc-950 transition hover:bg-amber-200" type="submit">Adicionar filme</button>
           <p id="formMessage" class="mt-3 min-h-6 text-sm text-zinc-400"></p>
         </form>
 
@@ -56,14 +56,14 @@
           <div class="flex flex-col gap-3 rounded-lg border border-zinc-800 bg-zinc-900 p-4 md:flex-row md:items-center">
             <input id="searchFilter" class="min-w-0 rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none transition focus:border-amber-300 md:flex-1" placeholder="Pesquisar filme ou gênero...">
             <select id="sortBy" class="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none transition focus:border-amber-300 md:w-44">
-              <option value="title">Sort by title</option>
-              <option value="year">Sort by year</option>
-              <option value="rating">Sort by rating</option>
-              <option value="genre">Sort by genre</option>
+              <option value="title">Ordenar por título</option>
+              <option value="year">Ordenar por ano</option>
+              <option value="rating">Ordenar por nota</option>
+              <option value="genre">Ordenar por gênero</option>
             </select>
             <select id="order" class="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none transition focus:border-amber-300 md:w-40">
-              <option value="asc">Ascending</option>
-              <option value="desc">Descending</option>
+              <option value="asc">Crescente</option>
+              <option value="desc">Decrescente</option>
             </select>
           </div>
 
@@ -72,8 +72,8 @@
           <footer class="flex flex-col gap-3 rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:flex-row sm:items-center sm:justify-between">
             <p id="pageInfo" class="text-sm text-zinc-400"></p>
             <div class="flex gap-2">
-              <button id="prevPage" class="rounded-md border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-200 transition hover:border-amber-300 disabled:cursor-not-allowed disabled:opacity-40">Previous</button>
-              <button id="nextPage" class="rounded-md border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-200 transition hover:border-amber-300 disabled:cursor-not-allowed disabled:opacity-40">Next</button>
+              <button id="prevPage" class="rounded-md border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-200 transition hover:border-amber-300 disabled:cursor-not-allowed disabled:opacity-40">Anterior</button>
+              <button id="nextPage" class="rounded-md border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-200 transition hover:border-amber-300 disabled:cursor-not-allowed disabled:opacity-40">Próxima</button>
             </div>
           </footer>
         </section>
@@ -84,17 +84,17 @@
       <div class="w-full max-w-lg rounded-lg border border-zinc-800 bg-zinc-900 p-5 shadow-2xl shadow-black/50">
         <div class="flex items-start justify-between gap-4">
           <div>
-            <h2 class="text-xl font-semibold">Import Letterboxd</h2>
-            <p class="mt-1 text-sm text-zinc-400">Paste a public Letterboxd list URL.</p>
+            <h2 class="text-xl font-semibold">Importar do Letterboxd</h2>
+            <p class="mt-1 text-sm text-zinc-400">Cole a URL de uma lista pública do Letterboxd.</p>
           </div>
-          <button id="closeImportModal" class="rounded-md border border-zinc-700 px-3 py-1 text-sm font-semibold text-zinc-200 transition hover:border-zinc-400" type="button">Close</button>
+          <button id="closeImportModal" class="rounded-md border border-zinc-700 px-3 py-1 text-sm font-semibold text-zinc-200 transition hover:border-zinc-400" type="button">Fechar</button>
         </div>
         <form id="importForm" class="mt-5 grid gap-4">
           <label class="grid gap-2 text-sm font-medium text-zinc-300">
             URL
             <input id="importUrl" name="url" required type="url" class="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none transition focus:border-sky-300" placeholder="https://letterboxd.com/user/list/list-name/">
           </label>
-          <button id="importSubmit" class="rounded-md bg-sky-300 px-4 py-2 font-semibold text-zinc-950 transition hover:bg-sky-200 disabled:cursor-wait disabled:opacity-60" type="submit">Import movies</button>
+          <button id="importSubmit" class="rounded-md bg-sky-300 px-4 py-2 font-semibold text-zinc-950 transition hover:bg-sky-200 disabled:cursor-wait disabled:opacity-60" type="submit">Importar filmes</button>
           <p id="importMessage" class="min-h-6 text-sm text-zinc-400"></p>
         </form>
       </div>
@@ -123,7 +123,7 @@
               </div>
               <div class="flex shrink-0 items-center gap-3">
                 <span class="rounded-md bg-emerald-400 px-2.5 py-1 text-sm font-bold text-zinc-950">${movie.rating.toFixed(1)}</span>
-                <button class="rounded-md border border-red-400/60 px-3 py-1.5 text-sm font-semibold text-red-200 transition hover:bg-red-500 hover:text-white" data-delete="${movie.id}">Delete</button>
+                <button class="rounded-md border border-red-400/60 px-3 py-1.5 text-sm font-semibold text-red-200 transition hover:bg-red-500 hover:text-white" data-delete="${movie.id}">Excluir</button>
               </div>
             </div>
           </article>
@@ -153,12 +153,12 @@
         const result = await response.json();
         state.totalPages = Math.max(result.pagination.totalPages, 1);
         document.querySelector('#movieCount').textContent = result.pagination.total;
-        document.querySelector('#pageInfo').textContent = `Page ${result.pagination.page} of ${state.totalPages}`;
+        document.querySelector('#pageInfo').textContent = `Página ${result.pagination.page} de ${state.totalPages}`;
         document.querySelector('#prevPage').disabled = state.page <= 1;
         document.querySelector('#nextPage').disabled = state.page >= state.totalPages;
         moviesEl.innerHTML = result.data.length
           ? result.data.map(movieCard).join('')
-          : '<div class="rounded-lg border border-zinc-800 bg-zinc-900 p-8 text-center text-zinc-400">No movies found.</div>';
+          : '<div class="rounded-lg border border-zinc-800 bg-zinc-900 p-8 text-center text-zinc-400">Nenhum filme encontrado.</div>';
       }
 
       form.addEventListener('submit', async event => {
@@ -176,13 +176,13 @@
         const result = await response.json();
 
         if (!response.ok) {
-          formMessage.textContent = result.errors ? result.errors.join(' ') : 'Could not save movie.';
+          formMessage.textContent = result.errors ? result.errors.join(' ') : 'Não foi possível salvar o filme.';
           formMessage.className = 'mt-3 min-h-6 text-sm text-red-300';
           return;
         }
 
         form.reset();
-        formMessage.textContent = 'Movie added.';
+        formMessage.textContent = 'Filme adicionado.';
         formMessage.className = 'mt-3 min-h-6 text-sm text-emerald-300';
         state.page = 1;
         loadMovies();
@@ -211,8 +211,8 @@
         event.preventDefault();
         const url = document.querySelector('#importUrl').value.trim();
         importSubmit.disabled = true;
-        importSubmit.textContent = 'Importing...';
-        importMessage.textContent = 'Fetching Letterboxd list...';
+        importSubmit.textContent = 'Importando...';
+        importMessage.textContent = 'Buscando lista do Letterboxd...';
         importMessage.className = 'min-h-6 text-sm text-sky-200';
 
         try {
@@ -224,21 +224,21 @@
           const result = await response.json();
 
           if (!response.ok) {
-            importMessage.textContent = result.errors ? result.errors.join(' ') : 'Import failed.';
+            importMessage.textContent = result.errors ? result.errors.join(' ') : 'Falha ao importar.';
             importMessage.className = 'min-h-6 text-sm text-red-300';
             return;
           }
 
-          importMessage.textContent = `Imported ${result.importedCount} movie(s). Skipped ${result.skippedCount}.`;
+          importMessage.textContent = `Importados: ${result.importedCount} filme(s). Ignorados: ${result.skippedCount}.`;
           importMessage.className = 'min-h-6 text-sm text-emerald-300';
           state.page = 1;
           await loadMovies();
         } catch {
-          importMessage.textContent = 'Import failed. Please try again.';
+          importMessage.textContent = 'Falha ao importar. Tente novamente.';
           importMessage.className = 'min-h-6 text-sm text-red-300';
         } finally {
           importSubmit.disabled = false;
-          importSubmit.textContent = 'Import movies';
+          importSubmit.textContent = 'Importar filmes';
         }
       });
 
