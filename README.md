@@ -110,6 +110,16 @@ O arquivo do banco fica em:
 db/database.db
 ```
 
+Em deploys na Vercel, o servidor usa outro caminho:
+
+```text
+/tmp/database.sqlite
+```
+
+Esse caminho e necessario porque o ambiente serverless da Vercel nao permite gravar livremente no diretorio do projeto em tempo de execucao. O diretorio `/tmp` e gravavel, mas e volatil: os dados podem sumir quando a funcao fica inativa, quando uma nova instancia e criada ou quando o ambiente e reciclado. Por isso, no deploy da Vercel este SQLite deve ser tratado como armazenamento temporario.
+
+Para dados permanentes em producao, use um banco externo como Neon Postgres, Turso, Supabase ou outro servico persistente.
+
 A tabela principal e `movies`:
 
 ```sql

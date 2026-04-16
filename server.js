@@ -1,22 +1,22 @@
-import express from 'express';
-import Database from 'better-sqlite3';
-import { v4 as uuidv4 } from 'uuid';
-import axios from 'axios';
-import * as cheerio from 'cheerio';
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+const express = require('express');
+const Database = require('better-sqlite3');
+const { randomUUID } = require('node:crypto');
+const axios = require('axios');
+const cheerio = require('cheerio');
+const fs = require('node:fs');
+const path = require('node:path');
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 const app = express();
 const port = process.env.PORT || 3000;
 const currentYear = new Date().getFullYear();
-const dbDir = path.join(process.cwd(), 'db');
+const isVercel = Boolean(process.env.VERCEL);
+const dbPath = isVercel
+  ? '/tmp/database.sqlite'
+  : path.join(process.cwd(), 'db', 'database.db');
 
-fs.mkdirSync(dbDir, { recursive: true });
+fs.mkdirSync(path.dirname(dbPath), { recursive: true });
 
-const db = new Database(path.join(dbDir, 'database.db'));
+const db = new Database(dbPath);
 db.pragma('journal_mode = WAL');
 db.exec(`
   CREATE TABLE IF NOT EXISTS movies (
@@ -165,7 +165,7 @@ app.post('/api/movies', (req, res) => {
   const { data, errors } = validateMovie(req.body);
   if (errors.length) return res.status(400).json({ errors });
 
-  const movie = { id: uuidv4(), ...data };
+  const movie = { id: randomUUID(), ...data };
   db.prepare(`
     INSERT INTO movies (id, title, director, year, rating, genre)
     VALUES (@id, @title, @director, @year, @rating, @genre)
@@ -217,7 +217,7 @@ app.post('/api/movies/import', async (req, res) => {
         if (existingTitles.has(title.toLowerCase())) continue;
 
         const movie = {
-          id: uuidv4(),
+          id: randomUUID(),
           title,
           director: 'Unknown',
           year: currentYear,
@@ -271,6 +271,10 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Route not found.' });
 });
 
-app.listen(port, () => {
-  console.log(`Movie Management System running at http://localhost:${port}`);
-});
+if (!isVercel) {
+  app.listen(port, () => {
+    console.log(`Movie Management System running at http://localhost:${port}`);
+  });
+}
+
+module.exports = app;

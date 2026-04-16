@@ -1,7 +1,7 @@
-import Database from 'better-sqlite3';
-import { v4 as uuidv4 } from 'uuid';
-import fs from 'node:fs';
-import path from 'node:path';
+const Database = require('better-sqlite3');
+const { randomUUID } = require('node:crypto');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const dbDir = path.join(process.cwd(), 'db');
 fs.mkdirSync(dbDir, { recursive: true });
@@ -56,7 +56,7 @@ if (count === 0) {
 
   const seed = db.transaction(() => {
     for (const [title, director, year, rating, genre] of movies) {
-      insert.run({ id: uuidv4(), title, director, year, rating, genre });
+      insert.run({ id: randomUUID(), title, director, year, rating, genre });
     }
   });
 

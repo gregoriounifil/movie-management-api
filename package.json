@@ -2,7 +2,6 @@
   "name": "movie-management-system",
   "version": "1.0.0",
   "description": "Movie Management System CRUD with Node.js, Express, and SQLite.",
-  "type": "module",
   "main": "server.js",
   "scripts": {
     "setup-db": "node setup-db.js",
