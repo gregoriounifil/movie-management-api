@@ -14,7 +14,6 @@
           <h1 class="mt-2 text-4xl font-bold tracking-tight sm:text-5xl">Gerenciamento de Filmes</h1>
         </div>
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <button id="openImportModal" class="rounded-md bg-sky-300 px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-sky-200" type="button">Importar do Letterboxd</button>
           <div class="rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-300">
             <span id="movieCount" class="font-semibold text-white">0</span> filmes
           </div>
@@ -55,16 +54,6 @@
         <section class="flex min-w-0 flex-col gap-4">
           <div class="flex flex-col gap-3 rounded-lg border border-zinc-800 bg-zinc-900 p-4 md:flex-row md:items-center">
             <input id="searchFilter" class="min-w-0 rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none transition focus:border-amber-300 md:flex-1" placeholder="Pesquisar filme ou gênero...">
-            <select id="sortBy" class="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none transition focus:border-amber-300 md:w-44">
-              <option value="title">Ordenar por título</option>
-              <option value="year">Ordenar por ano</option>
-              <option value="rating">Ordenar por nota</option>
-              <option value="genre">Ordenar por gênero</option>
-            </select>
-            <select id="order" class="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none transition focus:border-amber-300 md:w-40">
-              <option value="asc">Crescente</option>
-              <option value="desc">Decrescente</option>
-            </select>
           </div>
 
           <div id="movies" class="grid gap-3"></div>
@@ -80,38 +69,12 @@
       </section>
     </main>
 
-    <div id="importModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 px-4">
-      <div class="w-full max-w-lg rounded-lg border border-zinc-800 bg-zinc-900 p-5 shadow-2xl shadow-black/50">
-        <div class="flex items-start justify-between gap-4">
-          <div>
-            <h2 class="text-xl font-semibold">Importar do Letterboxd</h2>
-            <p class="mt-1 text-sm text-zinc-400">Cole a URL de uma lista pública do Letterboxd.</p>
-          </div>
-          <button id="closeImportModal" class="rounded-md border border-zinc-700 px-3 py-1 text-sm font-semibold text-zinc-200 transition hover:border-zinc-400" type="button">Fechar</button>
-        </div>
-        <form id="importForm" class="mt-5 grid gap-4">
-          <label class="grid gap-2 text-sm font-medium text-zinc-300">
-            URL
-            <input id="importUrl" name="url" required type="url" class="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none transition focus:border-sky-300" placeholder="https://letterboxd.com/user/list/list-name/">
-          </label>
-          <button id="importSubmit" class="rounded-md bg-sky-300 px-4 py-2 font-semibold text-zinc-950 transition hover:bg-sky-200 disabled:cursor-wait disabled:opacity-60" type="submit">Importar filmes</button>
-          <p id="importMessage" class="min-h-6 text-sm text-zinc-400"></p>
-        </form>
-      </div>
-    </div>
-
     <script>
       const state = { page: 1, limit: 6, totalPages: 1 };
       const moviesEl = document.querySelector('#movies');
       const form = document.querySelector('#movieForm');
       const formMessage = document.querySelector('#formMessage');
       const searchFilter = document.querySelector('#searchFilter');
-      const sortBy = document.querySelector('#sortBy');
-      const order = document.querySelector('#order');
-      const importModal = document.querySelector('#importModal');
-      const importForm = document.querySelector('#importForm');
-      const importSubmit = document.querySelector('#importSubmit');
-      const importMessage = document.querySelector('#importMessage');
 
       function movieCard(movie) {
         return `
@@ -143,9 +106,7 @@
       async function loadMovies() {
         const params = new URLSearchParams({
           page: state.page,
-          limit: state.limit,
-          sortBy: sortBy.value,
-          order: order.value
+          limit: state.limit
         });
         if (searchFilter.value.trim()) params.set('search', searchFilter.value.trim());
 
@@ -188,60 +149,6 @@
         loadMovies();
       });
 
-      document.querySelector('#openImportModal').addEventListener('click', () => {
-        importModal.classList.remove('hidden');
-        importModal.classList.add('flex');
-        importMessage.textContent = '';
-        document.querySelector('#importUrl').focus();
-      });
-
-      document.querySelector('#closeImportModal').addEventListener('click', () => {
-        importModal.classList.add('hidden');
-        importModal.classList.remove('flex');
-      });
-
-      importModal.addEventListener('click', event => {
-        if (event.target === importModal) {
-          importModal.classList.add('hidden');
-          importModal.classList.remove('flex');
-        }
-      });
-
-      importForm.addEventListener('submit', async event => {
-        event.preventDefault();
-        const url = document.querySelector('#importUrl').value.trim();
-        importSubmit.disabled = true;
-        importSubmit.textContent = 'Importando...';
-        importMessage.textContent = 'Buscando lista do Letterboxd...';
-        importMessage.className = 'min-h-6 text-sm text-sky-200';
-
-        try {
-          const response = await fetch('/api/movies/import', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url })
-          });
-          const result = await response.json();
-
-          if (!response.ok) {
-            importMessage.textContent = result.errors ? result.errors.join(' ') : 'Falha ao importar.';
-            importMessage.className = 'min-h-6 text-sm text-red-300';
-            return;
-          }
-
-          importMessage.textContent = `Importados: ${result.importedCount} filme(s). Ignorados: ${result.skippedCount}.`;
-          importMessage.className = 'min-h-6 text-sm text-emerald-300';
-          state.page = 1;
-          await loadMovies();
-        } catch {
-          importMessage.textContent = 'Falha ao importar. Tente novamente.';
-          importMessage.className = 'min-h-6 text-sm text-red-300';
-        } finally {
-          importSubmit.disabled = false;
-          importSubmit.textContent = 'Importar filmes';
-        }
-      });
-
       moviesEl.addEventListener('click', async event => {
         const id = event.target.dataset.delete;
         if (!id) return;
@@ -259,7 +166,7 @@
         loadMovies();
       });
 
-      [searchFilter, sortBy, order].forEach(control => {
+      [searchFilter].forEach(control => {
         control.addEventListener('input', () => {
           state.page = 1;
           loadMovies();

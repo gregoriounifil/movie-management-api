@@ -1,8 +1,6 @@
 const express = require('express');
 const Database = require('better-sqlite3');
 const { randomUUID } = require('node:crypto');
-const axios = require('axios');
-const cheerio = require('cheerio');
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -95,30 +93,6 @@ function parsePositiveInteger(value, fallback, max = 100) {
   return Math.min(parsed, max);
 }
 
-function extractLetterboxdTitles(html) {
-  const $ = cheerio.load(html);
-  const titles = new Set();
-
-  $('[data-film-name]').each((_, element) => {
-    const title = $(element).attr('data-film-name');
-    if (title && title.trim()) titles.add(title.trim());
-  });
-
-  $('.poster-container img[alt], .film-poster img[alt]').each((_, element) => {
-    const title = $(element).attr('alt');
-    if (title && title.trim()) titles.add(title.trim());
-  });
-
-  $('li.poster-container div.film-poster, div.poster').each((_, element) => {
-    const title = $(element).attr('data-film-name') || $(element).attr('data-target-link')?.split('/film/')[1]?.split('/')[0];
-    if (title && title.trim()) {
-      titles.add(title.replaceAll('-', ' ').replace(/\b\w/g, char => char.toUpperCase()).trim());
-    }
-  });
-
-  return [...titles];
-}
-
 app.get('/api/movies', (req, res) => {
   const { genre, sortBy = 'title', order = 'asc' } = req.query;
   const searchFilter = String(req.query.search || '').trim();
@@ -179,76 +153,6 @@ app.post('/api/movies', (req, res) => {
   `).run(movie);
 
   return res.status(201).json(movie);
-});
-
-app.post('/api/movies/import', async (req, res) => {
-  const url = typeof req.body.url === 'string' ? req.body.url.trim() : '';
-
-  if (!url) return res.status(400).json({ errors: ['URL é obrigatória.'] });
-
-  let parsedUrl;
-  try {
-    parsedUrl = new URL(url);
-  } catch {
-    return res.status(400).json({ errors: ['URL deve ser válida.'] });
-  }
-
-  if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
-    return res.status(400).json({ errors: ['URL deve usar http ou https.'] });
-  }
-
-  try {
-    const response = await axios.get(parsedUrl.href, {
-      timeout: 15000,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 MovieManagementSystem/1.0'
-      }
-    });
-    const titles = extractLetterboxdTitles(response.data);
-
-    if (titles.length === 0) {
-      return res.status(400).json({ errors: ['Nenhum título de filme foi encontrado nessa URL do Letterboxd.'] });
-    }
-
-    const existingTitles = new Set(
-      db.prepare('SELECT LOWER(title) AS title FROM movies').all().map(row => row.title)
-    );
-    const insert = db.prepare(`
-      INSERT INTO movies (id, title, director, year, rating, genre)
-      VALUES (@id, @title, @director, @year, @rating, @genre)
-    `);
-    const imported = [];
-
-    const saveMovies = db.transaction(() => {
-      for (const title of titles) {
-        if (existingTitles.has(title.toLowerCase())) continue;
-
-        const movie = {
-          id: randomUUID(),
-          title,
-          director: 'Desconhecido',
-          year: currentYear,
-          rating: 5.0,
-          genre: 'Importado'
-        };
-        insert.run(movie);
-        imported.push(movie);
-        existingTitles.add(title.toLowerCase());
-      }
-    });
-
-    saveMovies();
-
-    return res.status(201).json({
-      importedCount: imported.length,
-      skippedCount: titles.length - imported.length,
-      data: imported
-    });
-  } catch (error) {
-    return res.status(400).json({
-      errors: [`Não foi possível importar da URL: ${error.response?.status ? `HTTP ${error.response.status}` : error.message}`]
-    });
-  }
 });
 
 app.put('/api/movies/:id', (req, res) => {

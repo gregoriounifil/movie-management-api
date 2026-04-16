@@ -1,8 +1,8 @@
-# Sistema de Gerenciamento Manual de Filmes
+# Sistema de Gerenciamento de Filmes - Versão Padrão
 
-Aplicacao web simples para gerenciar uma colecao de filmes cadastrados manualmente.
+Esta é a versão padrão do projeto, focada no gerenciamento manual de filmes. Ela não possui importação externa nem rotinas de scraping.
 
-## Como executar
+## Como executar localmente
 
 ```bash
 npm install
@@ -16,30 +16,29 @@ Depois, acesse:
 http://localhost:3000
 ```
 
-## Funcionalidades principais
+## Funcionalidades
 
-- Cadastrar filmes com titulo, diretor, ano, nota e genero.
-- Listar filmes com paginacao.
-- Ordenar por titulo, diretor, ano, nota ou genero.
-- Pesquisar por titulo ou genero em um unico campo.
+- Cadastrar filmes manualmente com título, diretor, ano, nota e gênero.
+- Listar filmes com paginação.
+- Pesquisar por título ou gênero em um único campo.
 - Excluir filmes cadastrados.
 - Atualizar filmes pela API.
 
-## Busca unificada
+## Busca
 
 A interface usa o campo:
 
 ```text
-Pesquisar filme ou genero...
+Pesquisar filme ou gênero...
 ```
 
-Enquanto o usuario digita, o frontend chama:
+Enquanto o usuário digita, o frontend chama:
 
 ```text
 GET /api/movies?search=texto
 ```
 
-No backend, o parametro `search` procura o texto no titulo ou no genero do filme. A busca e parcial e nao diferencia maiusculas de minusculas.
+No backend, `search` faz uma busca parcial e sem diferenciar maiúsculas de minúsculas nos campos `title` e `genre`.
 
 Exemplos:
 
@@ -48,7 +47,7 @@ Exemplos:
 /api/movies?search=crime
 ```
 
-## API principal
+## API
 
 ### Listar filmes
 
@@ -56,13 +55,13 @@ Exemplos:
 GET /api/movies
 ```
 
-Parametros opcionais:
+Parâmetros opcionais:
 
-- `page`: pagina atual.
-- `limit`: quantidade por pagina.
-- `sortBy`: campo de ordenacao (`title`, `director`, `year`, `rating`, `genre`).
+- `page`: página atual.
+- `limit`: quantidade de filmes por página.
+- `sortBy`: campo de ordenação (`title`, `director`, `year`, `rating`, `genre`).
 - `order`: `asc` ou `desc`.
-- `search`: busca por titulo ou genero.
+- `search`: busca por título ou gênero.
 
 ### Criar filme
 
@@ -104,23 +103,23 @@ DELETE /api/movies/:id
 
 O projeto usa SQLite com `better-sqlite3`.
 
-O arquivo do banco fica em:
+Em ambiente local, o banco fica em:
 
 ```text
 db/database.db
 ```
 
-Em deploys na Vercel, o servidor usa outro caminho:
+Na Vercel, o servidor usa:
 
 ```text
 /tmp/database.sqlite
 ```
 
-Esse caminho e necessario porque o ambiente serverless da Vercel nao permite gravar livremente no diretorio do projeto em tempo de execucao. O diretorio `/tmp` e gravavel, mas e volatil: os dados podem sumir quando a funcao fica inativa, quando uma nova instancia e criada ou quando o ambiente e reciclado. Por isso, no deploy da Vercel este SQLite deve ser tratado como armazenamento temporario.
+O diretório `/tmp` é gravável em funções serverless, mas é volátil. Os dados podem ser perdidos quando a função fica inativa, quando uma nova instância é criada ou quando o ambiente é reciclado. Por isso, o SQLite na Vercel deve ser tratado como armazenamento temporário.
 
-Para dados permanentes em producao, use um banco externo como Neon Postgres, Turso, Supabase ou outro servico persistente.
+Para dados permanentes em produção, use um banco externo como Neon Postgres, Turso, Supabase ou outro serviço persistente.
 
-A tabela principal e `movies`:
+A tabela `movies` é criada automaticamente quando o servidor inicia:
 
 ```sql
 CREATE TABLE IF NOT EXISTS movies (
@@ -133,6 +132,20 @@ CREATE TABLE IF NOT EXISTS movies (
 );
 ```
 
+## Deploy na Vercel
+
+O arquivo `vercel.json` encaminha chamadas de API para `server.js` e qualquer outra rota para `index.html`.
+
+```json
+{
+  "version": 2,
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/server.js" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
+```
+
 ## Scripts
 
 ```bash
@@ -141,6 +154,6 @@ npm run dev
 npm start
 ```
 
-- `setup-db`: cria o banco e popula dados iniciais se a tabela estiver vazia.
+- `setup-db`: cria o banco local e popula dados iniciais se a tabela estiver vazia.
 - `dev`: inicia o servidor Express para desenvolvimento.
 - `start`: inicia o servidor Express.
