@@ -114,6 +114,7 @@ function extractLetterboxdTitles(html) {
 
 app.get('/api/movies', (req, res) => {
   const { genre, sortBy = 'title', order = 'asc' } = req.query;
+  const searchFilter = String(req.query.search || '').trim();
   const limit = parsePositiveInteger(req.query.limit, 10);
   const page = parsePositiveInteger(req.query.page, 1, 100000);
   const offset = (page - 1) * limit;
@@ -126,6 +127,11 @@ app.get('/api/movies', (req, res) => {
   if (genre && String(genre).trim()) {
     where.push('LOWER(genre) = LOWER(@genre)');
     params.genre = String(genre).trim();
+  }
+
+  if (searchFilter) {
+    where.push('(LOWER(title) LIKE LOWER(@search) OR LOWER(genre) LIKE LOWER(@search))');
+    params.search = `%${searchFilter}%`;
   }
 
   const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
