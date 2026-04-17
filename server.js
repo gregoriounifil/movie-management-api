@@ -23,6 +23,8 @@ const puppeteerLaunchOptions = {
     '--disable-setuid-sandbox',
     '--disable-dev-shm-usage',
     '--disable-gpu',
+    '--disable-blink-features=AutomationControlled',
+    '--window-size=1920,1080',
     `--user-agent=${browserUserAgent}`
   ],
   headless: 'new'
@@ -440,19 +442,26 @@ async function fetchRenderedLetterboxdHtml(url) {
   try {
     const page = await browser.newPage();
     await page.setUserAgent(browserUserAgent);
-    await page.setViewport({ width: 1366, height: 900 });
-    await page.setExtraHTTPHeaders({
-      'Accept-Language': 'en-US,en;q=0.9',
-      'Upgrade-Insecure-Requests': '1'
-    });
+    await page.setViewport({ width: 1920, height: 1080 });
+    await page.setExtraHTTPHeaders({ 'Accept-Language': 'en-US,en;q=0.9' });
     const response = await page.goto(url, {
       waitUntil: 'networkidle2',
       timeout: 45000
     });
+    await page.setExtraHTTPHeaders({ 'Accept-Language': 'en-US,en;q=0.9' });
 
     console.log(`Letterboxd import status: ${response?.status() ?? 'unknown'}`);
 
-    await page.waitForSelector('.poster-container', { timeout: 10000 });
+    try {
+      await page.waitForSelector('.poster-list, .poster-container', { timeout: 15000 });
+    } catch (error) {
+      const bodyHandle = await page.$('body');
+      const html = bodyHandle
+        ? await page.evaluate(body => body.innerHTML, bodyHandle)
+        : await page.content();
+      console.log('Conteúdo capturado (primeiros 1000 chars):', html.substring(0, 1000));
+      throw error;
+    }
 
     return await page.content();
   } finally {
