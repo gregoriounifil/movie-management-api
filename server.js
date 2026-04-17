@@ -8,9 +8,8 @@ const app = express();
 const port = process.env.PORT || 3000;
 const currentYear = new Date().getFullYear();
 const isVercel = Boolean(process.env.VERCEL);
-const dbPath = isVercel
-  ? '/tmp/database.sqlite'
-  : path.join(process.cwd(), 'db', 'database.db');
+const dbPath = path.join(process.cwd(), 'data', 'database.sqlite');
+const legacyCleanupId = 'clear-legacy-movies-2026-04-17';
 
 fs.mkdirSync(path.dirname(dbPath), { recursive: true });
 
@@ -26,6 +25,33 @@ db.exec(`
     genre TEXT NOT NULL
   );
 `);
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS app_migrations (
+    id TEXT PRIMARY KEY,
+    applied_at TEXT NOT NULL
+  );
+`);
+
+function runOneTimeLegacyCleanup() {
+  const cleanupAlreadyApplied = db
+    .prepare('SELECT 1 FROM app_migrations WHERE id = ?')
+    .get(legacyCleanupId);
+
+  if (cleanupAlreadyApplied) return;
+
+  const cleanup = db.transaction(() => {
+    const result = db.prepare('DELETE FROM movies').run();
+    db.prepare('INSERT INTO app_migrations (id, applied_at) VALUES (?, ?)')
+      .run(legacyCleanupId, new Date().toISOString());
+    return result.changes;
+  });
+
+  const deletedMovies = cleanup();
+  console.log(`Limpeza inicial aplicada: ${deletedMovies} filme(s) legado(s) removido(s).`);
+}
+
+runOneTimeLegacyCleanup();
 
 app.use(express.json());
 app.use(express.static(__dirname));
@@ -73,8 +99,8 @@ function validateMovie(payload, partial = false) {
 
   if (Object.hasOwn(data, 'rating')) {
     const rating = Number(data.rating);
-    if (!Number.isFinite(rating) || rating < 0 || rating > 10) {
-      errors.push('nota deve ser um número entre 0 e 10.');
+    if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
+      errors.push('nota deve ser um número entre 1 e 5.');
     } else {
       data.rating = Math.round(rating * 10) / 10;
     }

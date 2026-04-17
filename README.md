@@ -76,7 +76,7 @@ Exemplo:
   "title": "The Godfather",
   "director": "Francis Ford Coppola",
   "year": 1972,
-  "rating": 9.2,
+  "rating": 4.6,
   "genre": "Crime"
 }
 ```
@@ -101,23 +101,17 @@ DELETE /api/movies/:id
 
 ## Banco de dados
 
-O projeto usa SQLite com `better-sqlite3`.
+O projeto usa SQLite com `better-sqlite3`. As notas seguem a escala de 1 a 5.
 
-Em ambiente local, o banco fica em:
-
-```text
-db/database.db
-```
-
-Na Vercel, o servidor usa:
+O banco fica em:
 
 ```text
-/tmp/database.sqlite
+data/database.sqlite
 ```
 
-O diretório `/tmp` é gravável em funções serverless, mas é volátil. Os dados podem ser perdidos quando a função fica inativa, quando uma nova instância é criada ou quando o ambiente é reciclado. Por isso, o SQLite na Vercel deve ser tratado como armazenamento temporário.
+O diretório `data` é criado automaticamente quando o servidor ou o script de setup inicia.
 
-Para dados permanentes em produção, use um banco externo como Neon Postgres, Turso, Supabase ou outro serviço persistente.
+Na primeira inicialização com essa versão, o servidor executa uma limpeza única para remover filmes antigos do banco e registrar essa migração na tabela `app_migrations`. Depois disso, reinícios e novos deploys não apagam os filmes cadastrados.
 
 A tabela `movies` é criada automaticamente quando o servidor inicia:
 
@@ -130,6 +124,22 @@ CREATE TABLE IF NOT EXISTS movies (
   rating REAL NOT NULL,
   genre TEXT NOT NULL
 );
+```
+
+## Deploy na Railway
+
+O servidor escuta em `process.env.PORT || 3000`, que é o formato esperado pela Railway.
+
+Para manter o SQLite persistente entre deploys, crie um Volume na Railway apontando para:
+
+```text
+/app/data
+```
+
+Com esse volume montado, o arquivo usado pela aplicação será:
+
+```text
+/app/data/database.sqlite
 ```
 
 ## Deploy na Vercel
