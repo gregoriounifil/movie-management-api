@@ -130,7 +130,7 @@ CREATE TABLE IF NOT EXISTS movies (
 
 O servidor escuta em `process.env.PORT || 3000`, que é o formato esperado pela Railway.
 
-Para manter o SQLite persistente entre deploys, crie um Volume na Railway apontando para:
+Para manter o SQLite persistente entre deploys, crie um Volume na Railway. O Volume Mount Path deve ser exatamente:
 
 ```text
 /app/data
@@ -140,20 +140,6 @@ Com esse volume montado, o arquivo usado pela aplicação será:
 
 ```text
 /app/data/database.sqlite
-```
-
-## Deploy na Vercel
-
-O arquivo `vercel.json` encaminha chamadas de API para `server.js` e qualquer outra rota para `index.html`.
-
-```json
-{
-  "version": 2,
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/server.js" },
-    { "source": "/(.*)", "destination": "/index.html" }
-  ]
-}
 ```
 
 ## Scripts

@@ -3,10 +3,9 @@ const { randomUUID } = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const dbDir = path.join(process.cwd(), 'data');
-const dbPath = path.join(dbDir, 'database.sqlite');
+const dbPath = path.join(__dirname, 'data', 'database.sqlite');
 const legacyCleanupId = 'clear-legacy-movies-2026-04-17';
-fs.mkdirSync(dbDir, { recursive: true });
+fs.mkdirSync(path.dirname(dbPath), { recursive: true });
 
 const db = new Database(dbPath);
 

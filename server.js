@@ -7,8 +7,7 @@ const path = require('node:path');
 const app = express();
 const port = process.env.PORT || 3000;
 const currentYear = new Date().getFullYear();
-const isVercel = Boolean(process.env.VERCEL);
-const dbPath = path.join(process.cwd(), 'data', 'database.sqlite');
+const dbPath = path.join(__dirname, 'data', 'database.sqlite');
 const legacyCleanupId = 'clear-legacy-movies-2026-04-17';
 
 fs.mkdirSync(path.dirname(dbPath), { recursive: true });
@@ -208,10 +207,8 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Rota não encontrada.' });
 });
 
-if (!isVercel) {
-  app.listen(port, () => {
+app.listen(port, () => {
     console.log(`Sistema de Gerenciamento de Filmes em execução em http://localhost:${port}`);
-  });
-}
+});
 
 module.exports = app;
