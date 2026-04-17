@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
-const port = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 const currentYear = new Date().getFullYear();
 const dbDir = path.join(__dirname, 'data');
 const dbPath = path.join(dbDir, 'database.sqlite');
@@ -642,6 +642,6 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Route not found.' });
 });
 
-app.listen(port, () => {
-  console.log(`Movie Management System running at http://localhost:${port}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Servidor ativo na porta ${PORT}`);
 });
