@@ -15,15 +15,17 @@ const currentYear = new Date().getFullYear();
 const dbDir = path.join(__dirname, 'data');
 const dbPath = path.join(dbDir, 'database.sqlite');
 const legacyCleanupId = 'clear-legacy-movies-2026-04-17';
-const browserUserAgent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
+const browserUserAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36';
 const puppeteerLaunchOptions = {
-  headless: 'new',
+  executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || null,
   args: [
     '--no-sandbox',
     '--disable-setuid-sandbox',
     '--disable-dev-shm-usage',
+    '--disable-gpu',
     `--user-agent=${browserUserAgent}`
-  ]
+  ],
+  headless: 'new'
 };
 
 fs.mkdirSync(dbDir, { recursive: true });
@@ -450,10 +452,7 @@ async function fetchRenderedLetterboxdHtml(url) {
 
     console.log(`Letterboxd import status: ${response?.status() ?? 'unknown'}`);
 
-    await page.waitForSelector('.poster-container, .film-poster, .poster-list', {
-      visible: true,
-      timeout: 30000
-    });
+    await page.waitForSelector('.poster-container', { timeout: 10000 });
 
     return await page.content();
   } finally {
@@ -569,6 +568,7 @@ app.post('/api/movies/import', async (req, res) => {
     const movies = extractLetterboxdMovies(html);
 
     if (movies.length === 0) {
+      console.log(`Letterboxd import empty HTML preview: ${html.slice(0, 500)}`);
       return res.status(400).json({ errors: ['No movie titles were found at that Letterboxd URL.'] });
     }
 
