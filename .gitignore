@@ -2,6 +2,9 @@ node_modules/
 npm-debug.log*
 .env
 database.db
-!db/database.db
+data/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
 *.db-wal
 *.db-shm

@@ -85,8 +85,12 @@ O projeto usa SQLite com a biblioteca `better-sqlite3`.
 O banco fica em:
 
 ```text
-db/database.db
+data/database.sqlite
 ```
+
+O diretorio `data` e criado automaticamente quando o servidor ou o script de setup inicia.
+
+Na primeira inicializacao com essa versao, o servidor executa uma limpeza unica para remover filmes antigos do banco e registrar essa migracao na tabela `app_migrations`. Depois disso, reinicios e novos deploys nao apagam os filmes cadastrados.
 
 A tabela principal e `movies`:
 
@@ -102,6 +106,29 @@ CREATE TABLE IF NOT EXISTS movies (
 ```
 
 O campo `rating` aceita `NULL` para representar filmes sem nota no Letterboxd.
+
+## Deploy na Railway
+
+O servidor escuta em `process.env.PORT || 3000`, que e o formato esperado pela Railway.
+
+Para manter o SQLite persistente entre deploys, crie um Volume na Railway apontando para:
+
+```text
+/app/data
+```
+
+Com esse volume montado, o arquivo usado pela aplicacao sera:
+
+```text
+/app/data/database.sqlite
+```
+
+O `package.json` usa o pacote `puppeteer`, e as chamadas de `puppeteer.launch` incluem os argumentos Linux necessarios para a Railway:
+
+```text
+--no-sandbox
+--disable-setuid-sandbox
+```
 
 ## Scripts
 

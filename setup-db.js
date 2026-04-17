@@ -3,10 +3,12 @@ import { v4 as uuidv4 } from 'uuid';
 import fs from 'node:fs';
 import path from 'node:path';
 
-const dbDir = path.join(process.cwd(), 'db');
+const dbDir = path.join(process.cwd(), 'data');
+const dbPath = path.join(dbDir, 'database.sqlite');
+const legacyCleanupId = 'clear-legacy-movies-2026-04-17';
 fs.mkdirSync(dbDir, { recursive: true });
 
-const db = new Database(path.join(dbDir, 'database.db'));
+const db = new Database(dbPath);
 
 db.pragma('journal_mode = WAL');
 
@@ -18,6 +20,13 @@ db.exec(`
     year INTEGER NOT NULL,
     rating REAL,
     genre TEXT NOT NULL
+  );
+`);
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS app_migrations (
+    id TEXT PRIMARY KEY,
+    applied_at TEXT NOT NULL
   );
 `);
 
@@ -61,9 +70,12 @@ if (count === 0) {
   });
 
   seed();
-  console.log(`Seeded ${movies.length} movies into db/database.db`);
+  console.log(`Seeded ${movies.length} movies into ${dbPath}`);
 } else {
-  console.log(`db/database.db already contains ${count} movie(s); seed skipped.`);
+  console.log(`${dbPath} already contains ${count} movie(s); seed skipped.`);
 }
+
+db.prepare('INSERT OR IGNORE INTO app_migrations (id, applied_at) VALUES (?, ?)')
+  .run(legacyCleanupId, new Date().toISOString());
 
 db.close();

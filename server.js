@@ -12,11 +12,13 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const port = process.env.PORT || 3000;
 const currentYear = new Date().getFullYear();
-const dbDir = path.join(process.cwd(), 'db');
+const dbDir = path.join(process.cwd(), 'data');
+const dbPath = path.join(dbDir, 'database.sqlite');
+const legacyCleanupId = 'clear-legacy-movies-2026-04-17';
 
 fs.mkdirSync(dbDir, { recursive: true });
 
-const db = new Database(path.join(dbDir, 'database.db'));
+const db = new Database(dbPath);
 db.pragma('journal_mode = WAL');
 db.exec(`
   CREATE TABLE IF NOT EXISTS movies (
@@ -49,6 +51,33 @@ if (ratingColumn?.notnull) {
     ALTER TABLE movies_new RENAME TO movies;
   `);
 }
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS app_migrations (
+    id TEXT PRIMARY KEY,
+    applied_at TEXT NOT NULL
+  );
+`);
+
+function runOneTimeLegacyCleanup() {
+  const cleanupAlreadyApplied = db
+    .prepare('SELECT 1 FROM app_migrations WHERE id = ?')
+    .get(legacyCleanupId);
+
+  if (cleanupAlreadyApplied) return;
+
+  const cleanup = db.transaction(() => {
+    const result = db.prepare('DELETE FROM movies').run();
+    db.prepare('INSERT INTO app_migrations (id, applied_at) VALUES (?, ?)')
+      .run(legacyCleanupId, new Date().toISOString());
+    return result.changes;
+  });
+
+  const deletedMovies = cleanup();
+  console.log(`Initial cleanup applied: ${deletedMovies} legacy movie(s) removed.`);
+}
+
+runOneTimeLegacyCleanup();
 
 app.use(express.json());
 app.use(express.static(__dirname));
