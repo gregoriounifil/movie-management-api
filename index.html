@@ -27,25 +27,25 @@
           <div class="mt-5 grid gap-4">
             <label class="grid gap-2 text-sm font-medium text-zinc-300">
               Título
-              <input name="title" required class="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none transition focus:border-amber-300" placeholder="Parasite">
+              <input name="title" required class="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none transition focus:border-amber-300">
             </label>
             <label class="grid gap-2 text-sm font-medium text-zinc-300">
               Diretor
-              <input name="director" required class="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none transition focus:border-amber-300" placeholder="Bong Joon-ho">
+              <input name="director" required class="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none transition focus:border-amber-300">
             </label>
             <div class="grid grid-cols-2 gap-3">
               <label class="grid gap-2 text-sm font-medium text-zinc-300">
                 Ano
-                <input name="year" required type="number" min="1888" max="2031" class="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none transition focus:border-amber-300" placeholder="2019">
+                <input name="year" required type="number" min="1888" max="2031" class="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none transition focus:border-amber-300">
               </label>
               <label class="grid gap-2 text-sm font-medium text-zinc-300">
                 Nota
-                <input name="rating" required type="number" min="0.5" max="5" step="0.5" class="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none transition focus:border-amber-300" placeholder="4.5">
+                <input name="rating" required type="number" min="1" max="5" step="0.5" class="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none transition focus:border-amber-300">
               </label>
             </div>
             <label class="grid gap-2 text-sm font-medium text-zinc-300">
               Gênero
-              <input name="genre" required class="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none transition focus:border-amber-300" placeholder="Suspense">
+              <input name="genre" required class="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none transition focus:border-amber-300">
             </label>
           </div>
           <button class="mt-5 w-full rounded-md bg-amber-300 px-4 py-2 font-semibold text-zinc-950 transition hover:bg-amber-200" type="submit">Adicionar filme</button>
@@ -53,15 +53,15 @@
         </form>
 
         <section class="flex min-w-0 flex-col gap-4">
-          <div class="flex flex-col gap-3 rounded-lg border border-zinc-800 bg-zinc-900 p-4 md:flex-row md:items-center">
+          <div class="grid gap-3 rounded-lg border border-zinc-800 bg-zinc-900 p-4 md:grid-cols-[minmax(0,1fr)_12rem_10rem] md:items-center">
             <input id="searchFilter" class="min-w-0 rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none transition focus:border-amber-300 md:flex-1" placeholder="Pesquisar filme ou gênero...">
-            <select id="sortBy" class="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none transition focus:border-amber-300 md:w-44">
+            <select id="sortBy" class="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none transition focus:border-amber-300">
               <option value="title">Ordenar por título</option>
               <option value="year">Ordenar por ano</option>
               <option value="rating">Ordenar por nota</option>
               <option value="genre">Ordenar por gênero</option>
             </select>
-            <select id="order" class="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none transition focus:border-amber-300 md:w-40">
+            <select id="order" class="w-full whitespace-nowrap rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none transition focus:border-amber-300">
               <option value="asc">Crescente</option>
               <option value="desc">Decrescente</option>
             </select>

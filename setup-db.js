@@ -2,8 +2,11 @@ import Database from 'better-sqlite3';
 import { v4 as uuidv4 } from 'uuid';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const dbDir = path.join(process.cwd(), 'data');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const dbDir = path.join(__dirname, 'data');
 const dbPath = path.join(dbDir, 'database.sqlite');
 const legacyCleanupId = 'clear-legacy-movies-2026-04-17';
 fs.mkdirSync(dbDir, { recursive: true });

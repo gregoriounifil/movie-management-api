@@ -71,10 +71,10 @@ Esse enriquecimento deixa a importacao mais lenta, mas evita salvar filmes como 
 
 As notas seguem a escala do Letterboxd:
 
-- meia estrela vale `0.5`;
 - uma estrela vale `1.0`;
+- meias estrelas dentro da nota sao preservadas, por exemplo `3.5`;
 - cinco estrelas valem `5.0`;
-- filmes sem nota ficam com `rating = null`.
+- filmes sem estrelas ficam com `rating = null`.
 
 A interface mostra `Sem nota` quando a nota estiver nula.
 

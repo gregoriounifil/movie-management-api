@@ -12,9 +12,19 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const port = process.env.PORT || 3000;
 const currentYear = new Date().getFullYear();
-const dbDir = path.join(process.cwd(), 'data');
+const dbDir = path.join(__dirname, 'data');
 const dbPath = path.join(dbDir, 'database.sqlite');
 const legacyCleanupId = 'clear-legacy-movies-2026-04-17';
+const browserUserAgent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
+const puppeteerLaunchOptions = {
+  headless: 'new',
+  args: [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+    `--user-agent=${browserUserAgent}`
+  ]
+};
 
 fs.mkdirSync(dbDir, { recursive: true });
 
@@ -137,8 +147,8 @@ function validateMovie(payload, partial = false) {
       data.rating = null;
     } else {
     const rating = Number(data.rating);
-    if (!Number.isFinite(rating) || rating < 0.5 || rating > 5) {
-      errors.push('rating must be a number between 0.5 and 5.');
+    if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
+      errors.push('rating must be a number between 1 and 5.');
     } else {
       data.rating = Math.round(rating * 10) / 10;
     }
@@ -178,10 +188,23 @@ function extractLetterboxdMovies(html) {
 
   function parseRating(value, className = '') {
     const ratingClassMatch = String(className || '').match(/\brated-(\d+)\b/);
-    if (ratingClassMatch) return Math.round((Number(ratingClassMatch[1]) / 2) * 10) / 10;
+    if (ratingClassMatch) {
+      const classRating = Math.round((Number(ratingClassMatch[1]) / 2) * 10) / 10;
+      return classRating >= 1 && classRating <= 5 ? classRating : null;
+    }
 
     const ratingText = String(value || '').trim();
     if (!ratingText) return null;
+
+    const profileFullStars = (ratingText.match(/\u2605/g) || []).length;
+    const profileHalfStars = (ratingText.match(/\u00bd|\u00BD|1\/2/g) || []).length;
+
+    if (profileFullStars > 0 || profileHalfStars > 0) {
+      const profileRating = Math.round((profileFullStars + profileHalfStars * 0.5) * 10) / 10;
+      return profileRating >= 1 && profileRating <= 5 ? profileRating : null;
+    }
+
+    return null;
 
     const fullStars = (ratingText.match(/★/g) || []).length;
     const halfStars = (ratingText.match(/½/g) || []).length;
@@ -350,9 +373,10 @@ async function fetchLetterboxdMovieDetails(browser, movieUrl) {
   const page = await browser.newPage();
 
   try {
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36');
+    await page.setUserAgent(browserUserAgent);
     await page.setExtraHTTPHeaders({
-      'Accept-Language': 'en-US,en;q=0.5'
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Upgrade-Insecure-Requests': '1'
     });
     await page.goto(url, {
       waitUntil: 'domcontentloaded',
@@ -381,10 +405,7 @@ async function fetchLetterboxdMovieDetails(browser, movieUrl) {
 }
 
 async function enrichLetterboxdMovies(movies) {
-  const browser = await puppeteer.launch({
-    headless: 'new',
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
-  });
+  const browser = await puppeteer.launch(puppeteerLaunchOptions);
   const detailsByUrl = new Map();
 
   try {
@@ -408,16 +429,15 @@ async function enrichLetterboxdMovies(movies) {
 }
 
 async function fetchRenderedLetterboxdHtml(url) {
-  const browser = await puppeteer.launch({
-    headless: 'new',
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
-  });
+  const browser = await puppeteer.launch(puppeteerLaunchOptions);
 
   try {
     const page = await browser.newPage();
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36');
+    await page.setUserAgent(browserUserAgent);
+    await page.setViewport({ width: 1366, height: 900 });
     await page.setExtraHTTPHeaders({
-      'Accept-Language': 'en-US,en;q=0.5'
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Upgrade-Insecure-Requests': '1'
     });
     const response = await page.goto(url, {
       waitUntil: 'networkidle2',
