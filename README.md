@@ -78,6 +78,50 @@ As notas seguem a escala do Letterboxd:
 
 A interface mostra `Sem nota` quando a nota estiver nula.
 
+## 🧪 Testando a API
+
+O arquivo `movie-management-api.postman_collection.json` esta na raiz do projeto e pode ser importado no Postman em `Import > Files`. Depois de importar, ajuste a variavel `baseUrl` para o endereco local (`http://localhost:3000`) ou para a URL do Railway.
+
+### Healthcheck
+
+```text
+GET /health
+```
+
+Verifica se a aplicacao esta respondendo. No Railway, essa rota pode ser usada para confirmar que o servico subiu corretamente.
+
+### Listagem
+
+```text
+GET /api/movies
+```
+
+Retorna um objeto com `data`, que contem um array de objetos de filmes, e `pagination`, com dados de paginacao.
+
+### Cadastro
+
+```text
+POST /api/movies
+```
+
+Cria um novo filme enviando JSON com `title`, `director`, `year`, `rating` e `genre`. A escala de nota agora e de 1 a 5.
+
+### Busca
+
+```text
+GET /api/movies/search?q=drama
+```
+
+Busca filmes usando o parametro de consulta `q`. A busca considera titulo, diretor e genero. A listagem principal tambem aceita `GET /api/movies?search=texto` para pesquisa paginada.
+
+### Remocao
+
+```text
+DELETE /api/movies/:id
+```
+
+Remove um filme pelo `id`. Na colecao do Postman, o teste de cadastro salva o ID criado na variavel `movieId`, que pode ser usada na rota de remocao.
+
 ## Banco de dados
 
 O projeto usa SQLite com a biblioteca `better-sqlite3`.
@@ -111,7 +155,7 @@ O campo `rating` aceita `NULL` para representar filmes sem nota no Letterboxd.
 
 O servidor escuta em `process.env.PORT || 3000`, que e o formato esperado pela Railway.
 
-Para manter o SQLite persistente entre deploys, crie um Volume na Railway apontando para:
+Para manter o SQLite persistente entre deploys, crie um Volume na Railway. O Volume Mount Path deve ser exatamente:
 
 ```text
 /app/data

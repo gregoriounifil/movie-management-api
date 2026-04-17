@@ -1,0 +1,211 @@
+{
+  "info": {
+    "_postman_id": "c19d83b5-9a40-4f47-8b5e-9fd0f8b9d3e4",
+    "name": "Movie Management API",
+    "description": "Colecao para testar a API de gerenciamento de filmes no Railway.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "movieId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Healthcheck Railway",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "health"
+          ]
+        },
+        "description": "Verifica se a aplicacao esta respondendo no Railway."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Retorna status ok', function () {",
+              "  pm.expect(pm.response.json().status).to.eql('ok');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Listar todos os filmes",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/movies",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "movies"
+          ]
+        },
+        "description": "Lista os filmes cadastrados."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Retorna um array em data', function () {",
+              "  pm.expect(pm.response.json().data).to.be.an('array');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Adicionar um novo filme",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Central do Brasil\",\n  \"director\": \"Walter Salles\",\n  \"year\": 1998,\n  \"rating\": 5,\n  \"genre\": \"Drama\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/movies",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "movies"
+          ]
+        },
+        "description": "Cadastra um filme usando nota na escala de 1 a 5."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 201', function () {",
+              "  pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('Salva o ID do filme criado', function () {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.id).to.be.a('string');",
+              "  pm.collectionVariables.set('movieId', body.id);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Buscar filmes",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/movies/search?q=drama",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "movies",
+            "search"
+          ],
+          "query": [
+            {
+              "key": "q",
+              "value": "drama"
+            }
+          ]
+        },
+        "description": "Busca filmes por titulo, diretor ou genero usando o parametro q."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Retorna um array em data', function () {",
+              "  pm.expect(pm.response.json().data).to.be.an('array');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Remover um filme",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/movies/{{movieId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "movies",
+            "{{movieId}}"
+          ]
+        },
+        "description": "Remove um filme pelo ID. Execute primeiro o cadastro para preencher movieId."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 204', function () {",
+              "  pm.response.to.have.status(204);",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

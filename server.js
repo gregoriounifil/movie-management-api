@@ -92,6 +92,10 @@ runOneTimeLegacyCleanup();
 app.use(express.json());
 app.use(express.static(__dirname));
 
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
 function validateMovie(payload, partial = false) {
   const errors = [];
   const allowedFields = ['title', 'director', 'year', 'rating', 'genre'];
@@ -504,6 +508,25 @@ app.get('/api/movies', (req, res) => {
       totalPages: Math.ceil(total / limit)
     }
   });
+});
+
+app.get('/api/movies/search', (req, res) => {
+  const query = String(req.query.q || '').trim();
+
+  if (!query) {
+    return res.status(400).json({ errors: ['q is required.'] });
+  }
+
+  const movies = db.prepare(`
+    SELECT id, title, director, year, rating, genre
+    FROM movies
+    WHERE LOWER(title) LIKE LOWER(@query)
+      OR LOWER(director) LIKE LOWER(@query)
+      OR LOWER(genre) LIKE LOWER(@query)
+    ORDER BY title ASC
+  `).all({ query: `%${query}%` });
+
+  return res.status(200).json({ data: movies });
 });
 
 app.get('/api/movies/:id', (req, res) => {
