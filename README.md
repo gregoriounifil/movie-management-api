@@ -1,5 +1,15 @@
 # Sistema de Gerenciamento de Filmes - Versão Padrão
 
+<div align="center">
+  <h3>Deploy Railway</h3>
+  <p>
+    Esta branch esta publicada no Railway com a versao padrao para gerenciamento manual de filmes.
+  </p>
+  <p>
+    <a href="https://movie-management-api-production.up.railway.app/"><strong>Acessar deploy da versao principal</strong></a>
+  </p>
+</div>
+
 Esta é a versão padrão do projeto, focada no gerenciamento manual de filmes. Ela não possui importação externa nem rotinas de scraping.
 
 ## Como executar localmente
