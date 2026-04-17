@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const app = express();
-const port = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 const currentYear = new Date().getFullYear();
 const dbPath = path.join(__dirname, 'data', 'database.sqlite');
 const legacyCleanupId = 'clear-legacy-movies-2026-04-17';
@@ -230,8 +230,8 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Rota não encontrada.' });
 });
 
-app.listen(port, () => {
-    console.log(`Sistema de Gerenciamento de Filmes em execução em http://localhost:${port}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Servidor ativo na porta ${PORT}`);
 });
 
 module.exports = app;
